@@ -1,15 +1,14 @@
 Vagrant.configure(2) do |config|
-# [...]
     config.vm.box = "hashicorp/bionic64"
     config.vm.define "apommierS" do |control|
         control.vm.hostname = "apommierS"
         control.vm.network "private_network", ip: "192.168.56.110"
         control.vm.provider "virtualbox" do |v|
             v.name = "apommierS"
-            v.memory = "512"
-            v.cpus = 1
+            v.memory = "2048"
+            v.cpus = 2
         end
-    # [...]
+        control.vm.provision "shell", path: "k3s-master.sh"
     end
 
     # config.vm.provision "shell", inline: ""
@@ -21,10 +20,10 @@ Vagrant.configure(2) do |config|
         control.vm.network "private_network", ip: "192.168.56.111"
         control.vm.provider "virtualbox" do |v|
             v.name = "apommierSW"
-            v.memory = "512"
-            v.cpus = 1
+            v.memory = "2048"
+            v.cpus = 2
         end
-    # [...]
+        control.vm.provision "shell", path: "k3s-worker.sh"
     end
 
     # config.vm.provision "shell", inline: <<-SHELL
