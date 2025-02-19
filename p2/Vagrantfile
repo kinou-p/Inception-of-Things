@@ -1,5 +1,6 @@
 Vagrant.configure(2) do |config|
     config.vm.box = "hashicorp/bionic64"
+    config.vm.network "forwarded_port", guest: 80, host: 80
     config.vm.define "apommierS" do |control|
         control.vm.hostname = "apommierS"
         control.vm.network "private_network", ip: "192.168.56.110"
@@ -9,26 +10,18 @@ Vagrant.configure(2) do |config|
             v.cpus = 2
         end
         control.vm.provision "shell", path: "./scripts/k3s-master.sh"
+        # Deploy Kubernetes manifests
+        control.vm.provision "shell", inline: <<-SHELL
+            echo "Waiting for k3s to be ready..."
+
+            echo "Setting KUBECONFIG..."
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+            echo "Applying Kubernetes deployments..."
+            kubectl apply -f /vagrant/confs/app1.yaml
+            kubectl apply -f /vagrant/confs/app2.yaml
+            kubectl apply -f /vagrant/confs/app3.yaml
+            kubectl apply -f /vagrant/confs/ingress.yaml
+        SHELL
     end
-
-    # config.vm.provision "shell", inline: ""
-    # control.vm.provision "shell", path: REDACTED
-    # end
-
-    config.vm.define "apommierSW" do |control|
-        control.vm.hostname = "apommierSW"
-        control.vm.network "private_network", ip: "192.168.56.111"
-        control.vm.provider "virtualbox" do |v|
-            v.name = "apommierSW"
-            v.memory = "2048"
-            v.cpus = 2
-        end
-        control.vm.provision "shell", path: "./scripts/k3s-worker.sh"
-    end
-
-    # config.vm.provision "shell", inline: <<-SHELL
-    # [..]
-    # SHELL
-    # control.vm.provision "shell", path: REDACTED
-    # end
 end
