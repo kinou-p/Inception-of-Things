@@ -1,30 +1,39 @@
 # Inception-of-Things (IoT) - École 42
 
 ## Description
-Inception-of-Things est un projet de l'École 42 qui introduit aux technologies DevOps modernes, particulièrement Kubernetes, Docker, et l'orchestration de conteneurs. Ce projet utilise K3s (Kubernetes léger) avec Vagrant pour créer et gérer des clusters Kubernetes.
+Inception-of-Things est un projet de l'École 42 qui introduit aux technologies DevOps modernes, particulièrement Kubernetes, Docker, et l'orchestration de conteneurs. Ce projet utilise K3s (Kubernetes léger) avec Vagrant pour créer et gérer des clusters Kubernetes, ainsi que K3d pour les environnements de développement locaux.
 
 ## Objectifs pédagogiques
 - Découvrir **Kubernetes** et l'orchestration de conteneurs
-- Maîtriser **K3s** (version allégée de Kubernetes)
-- Comprendre les **concepts DevOps** (IaC, CI/CD)
+- Maîtriser **K3s** (version allégée de Kubernetes) et **K3d** (K3s in Docker)
+- Comprendre les **concepts DevOps** (IaC, CI/CD, GitOps)
 - Gérer l'**infrastructure as Code** avec Vagrant
 - Apprendre le **déploiement d'applications** conteneurisées
 - Mettre en place des **services réseau** et load balancing
+- Implémenter le **GitOps** avec Argo CD
+- Configurer une chaîne **CI/CD complète** avec GitLab local
 
 ## Architecture du projet
 
 ### Structure générale
 ```
 Inception-of-Things/
-├── p1/                  # Partie 1 - Cluster K3s simple
+├── p1/                  # Partie 1 - Cluster K3s simple (Vagrant)
 │   ├── Vagrantfile     # Configuration VMs
 │   └── scripts/        # Scripts d'installation
-├── p2/                  # Partie 2 - Applications et services
+├── p2/                  # Partie 2 - Applications et services (Vagrant)
 │   ├── Vagrantfile     # Configuration avancée
 │   ├── confs/          # Configurations Kubernetes
 │   └── scripts/        # Scripts de déploiement
-└── README.md           # Documentation
+├── p3/                  # Partie 3 - K3d et Argo CD (Local VM)
+│   ├── confs/          # Manifests Argo CD et Application
+│   └── scripts/        # Scripts d'installation et setup
+└── bonus/               # Bonus - Gitlab + Argo CD (Local VM)
+    ├── confs/          # Config Gitlab et manifests
+    └── scripts/        # Scripts d'installation complète et setup
 ```
+
+---
 
 ## Partie 1 (P1) - Cluster K3s basique
 
@@ -34,312 +43,125 @@ Inception-of-Things/
 - Établir la **communication inter-nodes**
 
 ### Infrastructure
-- **VM Master (apommierS)** : `192.168.56.110`
-  - Rôle : Control plane K3s
-  - RAM : 2048 MB
-  - CPU : 2 cores
-  
-- **VM Worker (apommierSW)** : `192.168.56.111`
-  - Rôle : Worker node
-  - RAM : 2048 MB  
-  - CPU : 2 cores
+- **VM Master (apommierS)** : `192.168.56.110` (Control plane)
+- **VM Worker (apommierSW)** : `192.168.56.111` (Agent)
+- **OS** : Ubuntu 18.04 (via Vagrant/VirtualBox)
 
-### Technologies utilisées
-- **Vagrant** : Orchestration des VMs
-- **VirtualBox** : Hyperviseur
-- **K3s** : Distribution Kubernetes légère
-- **Ubuntu 18.04** : OS des VMs
-
-## Partie 2 (P2) - Applications et services
-
-### Objectifs
-- Déployer des **applications web** sur le cluster
-- Configurer des **services Kubernetes**
-- Mettre en place du **load balancing**
-- Gérer les **ressources** et **namespaces**
-
-### Services déployés
-- **Applications web** personnalisées
-- **Ingress controller** pour le routage
-- **Load balancer** pour la répartition de charge
-- **Services** avec exposition externe
-
-## Installation et déploiement
-
-### Prérequis
-- **Vagrant** 2.2+
-- **VirtualBox** 6.0+
-- **Git** pour cloner le projet
-- **8GB RAM** minimum disponible
-
-### Installation
-```bash
-git clone <repository-url>
-cd Inception-of-Things
-```
-
-### Déploiement P1
+### Déploiement
 ```bash
 cd p1
 vagrant up
 ```
 
-### Vérification P1
+---
+
+## Partie 2 (P2) - Applications et services
+
+### Objectifs
+- Déployer **3 applications web** sur le cluster
+- Configurer un **Ingress Controller** pour le routage
+- Gérer les **réplicas** (3 réplicas pour app2)
+
+### Services déployés
+- **App 1** : `app1.com`
+- **App 2** : `app2.com` (3 réplicas)
+- **App 3** : Default backend (toutes les autres requêtes)
+- **IP Cluster** : `192.168.56.110`
+
+### Déploiement
 ```bash
-# Connexion au master
-vagrant ssh apommierS
-
-# Vérifier les nodes
-kubectl get nodes
-
-# Vérifier les pods système
-kubectl get pods -A
-```
-
-### Déploiement P2
-```bash
-cd ../p2
+cd p2
 vagrant up
+# Accès via curl -H "Host: app1.com" http://192.168.56.110
 ```
 
-### Vérification P2
+---
+
+## Partie 3 (P3) - K3d et Argo CD
+
+### Objectifs
+- Utiliser **K3d** (Kubernetes léger dans Docker) au lieu de VMs lourdes
+- Mettre en place une approche **GitOps** avec Argo CD
+- Déployer une application avec **gestion de version** (v1/v2)
+
+### Infrastructure
+- **Cluster** : K3d (1 node local)
+- **CD** : Argo CD
+- **Namespaces** : `argocd`, `dev`
+
+### Installation et Déploiement
 ```bash
-# Vérifier les applications
-kubectl get deployments
+# 1. Installer les outils (Docker, K3d, kubectl, ArgoCD CLI)
+bash p3/scripts/install.sh
 
-# Vérifier les services
-kubectl get services
-
-# Tester l'accès aux applications
-curl http://192.168.56.110
+# 2. Configurer le cluster et déployer l'application
+bash p3/scripts/setup.sh
 ```
 
-## Scripts d'automatisation
+### Vérification
+- **Argo CD** : `https://localhost:8080` (admin / password affiché par le script)
+- **Application** : `http://localhost:8888`
+- **Mise à jour** : Modifier `deployment.yaml` (v1 -> v2), push git, Argo CD synchronise automatiquement.
 
-### P1 - Scripts de base
-- `k3s-master.sh` : Installation et configuration du master
-- `k3s-worker.sh` : Installation et jointure du worker
+---
 
-### P2 - Scripts avancés
-- `deploy-apps.sh` : Déploiement des applications
-- `setup-ingress.sh` : Configuration du routage
-- `configure-services.sh` : Setup des services
+## Bonus - Gitlab Local + Argo CD
 
-## Configuration Kubernetes
+### Objectifs
+- Héberger **Gitlab en local** dans le cluster Kubernetes
+- Configurer Argo CD pour utiliser ce Gitlab interne (CI/CD 100% offline)
+- Simuler un environnement d'entreprise complet
 
-### Exemple de déploiement d'application
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: web-app
-  namespace: default
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: web-app
-  template:
-    metadata:
-      labels:
-        app: web-app
-    spec:
-      containers:
-      - name: web
-        image: nginx:alpine
-        ports:
-        - containerPort: 80
+### Infrastructure
+- **Cluster** : K3d
+- **Services** : Gitlab (Helm), Argo CD, App de démo
+- **Namespaces** : `gitlab`, `argocd`, `dev`
+
+### Installation et Déploiement
+> ⚠️ Nécessite des ressources importantes (4GB+ RAM)
+
+```bash
+# 1. Installer les outils (+ Helm)
+bash bonus/scripts/install.sh
+
+# 2. Configurer tout l'environnement
+bash bonus/scripts/setup.sh
 ```
 
-### Service avec LoadBalancer
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: web-service
-spec:
-  type: LoadBalancer
-  ports:
-  - port: 80
-    targetPort: 80
-  selector:
-    app: web-app
-```
+### Vérification
+- **Gitlab** : `http://localhost:8181` (root / `iot-bonus-42`)
+- **Argo CD** : `https://localhost:8080`
+- **Application** : `http://localhost:8888`
+- **Workflow** : Push sur le Gitlab local -> Argo CD détecte -> Déploiement auto.
 
-## Concepts Kubernetes abordés
-
-### Ressources de base
-- **Pods** : Unité de déploiement minimale
-- **Deployments** : Gestion des réplicas d'applications
-- **Services** : Exposition et découverte de services
-- **ConfigMaps** : Configuration externalisée
-- **Secrets** : Gestion des données sensibles
-
-### Réseau et routage
-- **Ingress** : Routage HTTP/HTTPS
-- **Network Policies** : Sécurité réseau
-- **LoadBalancer** : Répartition de charge
-- **ClusterIP** : Communication interne
-
-### Gestion des ressources
-- **Namespaces** : Isolation logique
-- **Resource Quotas** : Limitation des ressources
-- **Limits et Requests** : Gestion mémoire/CPU
+---
 
 ## Commandes utiles
 
-### Gestion des VMs
+### Gestion K3d
 ```bash
-# Démarrer les VMs
-vagrant up
+# Créer/Supprimer un cluster
+k3d cluster create iot
+k3d cluster delete iot
 
-# Arrêter les VMs
-vagrant halt
-
-# Supprimer les VMs
-vagrant destroy
-
-# Recharger la configuration
-vagrant reload
+# Lister les clusters
+k3d cluster list
 ```
 
-### Debugging Kubernetes
+### Debugging Argo CD
 ```bash
-# Logs des pods
-kubectl logs <pod-name>
-
-# Description détaillée
-kubectl describe pod <pod-name>
-
-# Shell dans un pod
-kubectl exec -it <pod-name> -- /bin/bash
-
-# Événements du cluster
-kubectl get events --sort-by=.metadata.creationTimestamp
+# Port-forward manuel si besoin
+kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
-### Monitoring
+### Logs
 ```bash
-# Utilisation des ressources
-kubectl top nodes
-kubectl top pods
-
-# État du cluster
-kubectl cluster-info
-
-# Services exposés
-kubectl get endpoints
+# Logs d'un pod
+kubectl logs -f <pod-name> -n <namespace>
 ```
-
-## Résolution de problèmes
-
-### Problèmes courants
-- **Nodes NotReady** : Vérifier la connectivité réseau
-- **Pods Pending** : Vérifier les ressources disponibles
-- **Services inaccessibles** : Vérifier les labels et selectors
-- **Images non trouvées** : Vérifier les registry et tags
-
-### Logs système
-```bash
-# Logs K3s sur le master
-sudo journalctl -u k3s
-
-# Logs K3s sur le worker
-sudo journalctl -u k3s-agent
-
-# Logs Vagrant
-vagrant up --debug
-```
-
-## Sécurité et bonnes pratiques
-
-### Configurations recommandées
-- **RBAC** activé par défaut
-- **Network policies** pour l'isolation
-- **Resource limits** pour éviter la famine
-- **Secrets** pour les données sensibles
-- **Image policies** pour la sécurité
-
-### Optimisations
-- **Resource requests** appropriées
-- **Health checks** (readiness/liveness)
-- **Rolling updates** pour les déploiements
-- **Horizontal Pod Autoscaling** si nécessaire
-
-## Extensions possibles
-
-### Bonus et améliorations
-- **Monitoring** avec Prometheus/Grafana
-- **Logging** centralisé avec ELK Stack
-- **CI/CD** avec GitLab/Jenkins
-- **Service Mesh** avec Istio
-- **Storage** persistant avec volumes
-
-### Intégrations
-- **Helm** pour la gestion de packages
-- **ArgoCD** pour GitOps
-- **Cert-Manager** pour les certificats TLS
-- **External-DNS** pour la gestion DNS
-
-## Compétences développées
-- **Infrastructure as Code** avec Vagrant
-- **Orchestration de conteneurs** avec Kubernetes
-- **Administration système** Linux
-- **Networking** et services distribués
-- **Troubleshooting** d'infrastructures complexes
-- **DevOps** et automatisation
-- **Monitoring** et observabilité
-
-## Architecture réseau
-
-### Schéma de déploiement
-```
-    ┌─────────────────────────────────────┐
-    │           Host Machine              │
-    │  ┌─────────────┐  ┌─────────────┐   │
-    │  │ Master Node │  │ Worker Node │   │
-    │  │ 192.168.56. │  │ 192.168.56. │   │
-    │  │    110      │  │    111      │   │
-    │  │             │  │             │   │
-    │  │   K3s API   │  │   K3s Agent │   │
-    │  │   Server    │  │             │   │
-    │  └─────────────┘  └─────────────┘   │
-    └─────────────────────────────────────┘
-```
-
-## Tests et validation
-
-### Tests de fonctionnement
-```bash
-# Test connectivité entre nodes
-kubectl get nodes -o wide
-
-# Test déploiement d'application
-kubectl create deployment test-nginx --image=nginx
-kubectl expose deployment test-nginx --port=80 --type=NodePort
-
-# Test scaling
-kubectl scale deployment test-nginx --replicas=3
-```
-
-### Métriques de succès
-- ✅ Cluster K3s opérationnel
-- ✅ Communication inter-nodes
-- ✅ Applications déployées et accessibles
-- ✅ Load balancing fonctionnel
-- ✅ Pas d'erreurs dans les logs
-
-## Documentation officielle
-- [K3s Documentation](https://docs.k3s.io/)
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [Vagrant Documentation](https://www.vagrantup.com/docs)
 
 ## Auteur
 Alexandre Pommier (apommier) - École 42
 
 ## Licence
 Projet académique - École 42
-
----
-
-*"Introduction pratique à l'orchestration moderne"* ☸️🚀

@@ -1,0 +1,85 @@
+# Gitlab Helm values - minimal resources for lab environment
+global:
+  hosts:
+    domain: gitlab.local
+    externalIP: 127.0.0.1
+  ingress:
+    configureCertmanager: false
+    tls:
+      enabled: false
+  # Disable components not needed for the lab
+  kas:
+    enabled: false
+  pages:
+    enabled: false
+  appConfig:
+    # Disable features we don't need
+    lfs:
+      enabled: false
+    artifacts:
+      enabled: false
+    uploads:
+      enabled: false
+    packages:
+      enabled: false
+    terraformState:
+      enabled: false
+
+# Disable sub-charts not needed
+certmanager:
+  install: false
+
+nginx-ingress:
+  enabled: false
+
+prometheus:
+  install: false
+
+gitlab-runner:
+  install: false
+
+registry:
+  enabled: false
+
+# Minimal resource settings
+gitlab:
+  webservice:
+    minReplicas: 1
+    maxReplicas: 1
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+  sidekiq:
+    minReplicas: 1
+    maxReplicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+  gitaly:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+  gitlab-shell:
+    minReplicas: 1
+    maxReplicas: 1
+
+postgresql:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+redis:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+minio:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
